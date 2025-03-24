@@ -84,10 +84,66 @@ class ChartPainter extends CustomPainter {
           ..strokeWidth = 1.0,
       );
 
+      canvas.drawParallelogram(
+        rect: rect,
+        skew: -horizontalSkew,
+        paint:
+            Paint()
+              ..color = Colors.black
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.0,
+      );
+      canvas.drawParallelogram(
+        rect: rect,
+        skew: -verticalSkew,
+        axis: Axis.vertical,
+        paint:
+            Paint()
+              ..color = Colors.blueGrey
+              ..style = PaintingStyle.fill
+              ..strokeWidth = 1.0,
+      );
       xOffset += barWidth + spacing;
     }
   }
 
+  void drawCube({
+    required Rect rect,
+    required Paint paint,
+    required Canvas canvas,
+    double horizontalSkew = 10.0,
+    double verticalSkew = 10.0,
+  }) {}
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+extension DrawShapes on Canvas {
+  void drawParallelogram({
+    required Rect rect,
+    double skew = 10.0,
+    Axis axis = Axis.horizontal,
+    required Paint paint,
+  }) {
+    late Path path;
+    if (axis == Axis.horizontal) {
+      path =
+          Path()
+            ..moveTo(rect.left, rect.top)
+            ..lineTo(rect.right, rect.top)
+            ..lineTo(rect.right - skew, rect.bottom)
+            ..lineTo(rect.left - skew, rect.bottom)
+            ..lineTo(rect.left, rect.top);
+    } else {
+      path =
+          Path()
+            ..moveTo(rect.left, rect.top)
+            ..lineTo(rect.right, rect.top - skew)
+            ..lineTo(rect.right, rect.bottom - skew)
+            ..lineTo(rect.left, rect.bottom)
+            ..lineTo(rect.left, rect.top);
+    }
+    drawPath(path, paint);
+  }
 }
