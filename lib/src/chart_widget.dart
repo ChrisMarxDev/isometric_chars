@@ -35,8 +35,7 @@ class ChartWidget extends StatelessWidget {
 class ChartPainter extends CustomPainter {
   final List<ChartItem> items;
   final double? totalValue;
-  static const double verticalSpacing = 0.0;
-  static const double horizontalSpacing = 2.0;
+  static const double spacing = 2.0;
 
   ChartPainter({required this.items, this.totalValue});
 
@@ -52,11 +51,11 @@ class ChartPainter extends CustomPainter {
 
     final total =
         totalValue ?? items.fold<double>(0.0, (sum, item) => sum + item.value);
-    final maxHeight = twoDSize.height - 2 * verticalSpacing;
+    final maxHeight = twoDSize.height - verticalSkew;
     final availableWidth =
-        twoDSize.width - (items.length + 1) * horizontalSpacing;
+        twoDSize.width - (items.length + 1) * spacing - horizontalSkew;
 
-    var xOffset = horizontalSpacing;
+    var xOffset = spacing;
 
     // Draw bars from left to right
     for (var i = 0; i < items.length; i++) {
@@ -66,12 +65,7 @@ class ChartPainter extends CustomPainter {
       final barWidth = (item.value / total) * availableWidth;
 
       // Draw the bar
-      final rect = Rect.fromLTWH(
-        xOffset + horizontalSkew,
-        verticalSpacing + verticalSkew,
-        barWidth,
-        maxHeight - verticalSkew,
-      );
+      final rect = Rect.fromLTWH(xOffset, verticalSkew, barWidth, maxHeight);
 
       // Fill the bar
       canvas.drawRect(
@@ -90,7 +84,7 @@ class ChartPainter extends CustomPainter {
           ..strokeWidth = 1.0,
       );
 
-      xOffset += barWidth + horizontalSpacing;
+      xOffset += barWidth + spacing;
     }
   }
 
