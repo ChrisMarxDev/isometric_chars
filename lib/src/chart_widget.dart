@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:pseudo_3d_chart/src/util/color_util.dart';
@@ -14,14 +15,100 @@ class ChartItem<T> {
     required this.color,
     required this.value,
   });
+
+  ChartItem lerp(ChartItem other, double t) {
+    return ChartItem(
+      identifier: identifier,
+      color: Color.lerp(color, other.color, t) ?? other.color,
+      value: lerpDouble(value, other.value, t) ?? other.value,
+    );
+  }
 }
 
-class ChartWidget extends StatelessWidget {
-  final List<ChartItem> items;
+class AnimatedChartWidget<T> extends StatefulWidget {
+  final List<ChartItem<T>> items;
   final double? maxValue;
   final double spacing;
   final double horizontalSkew;
   final double verticalSkew;
+  final void Function(ChartItem<T>)? onTap;
+  final void Function(ChartItem<T>)? onHover;
+  final void Function()? onHoverExit;
+  final Duration duration;
+
+  const AnimatedChartWidget({
+    super.key,
+    required this.items,
+    this.maxValue,
+    this.spacing = 8.0,
+    this.horizontalSkew = 8.0,
+    this.verticalSkew = 8.0,
+    this.onTap,
+    this.onHover,
+    this.onHoverExit,
+    this.duration = const Duration(milliseconds: 300),
+  });
+
+  @override
+  State<AnimatedChartWidget<T>> createState() => _AnimatedChartWidgetState<T>();
+}
+
+class _AnimatedChartWidgetState<T> extends State<AnimatedChartWidget<T>>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  List<ChartItem<T>> _items = [];
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void didUpdateWidget(AnimatedChartWidget<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items != widget.items) {
+      _items = widget.items;
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChartWidget<T>(
+      items: widget.items,
+      maxValue: widget.maxValue,
+      spacing: widget.spacing,
+      horizontalSkew: widget.horizontalSkew,
+      verticalSkew: widget.verticalSkew,
+      onTap: widget.onTap,
+      onHover: widget.onHover,
+    );
+  }
+}
+
+class ChartWidget<T> extends StatefulWidget {
+  final List<ChartItem<T>> items;
+  final double? maxValue;
+  final double spacing;
+  final double horizontalSkew;
+  final double verticalSkew;
+  final void Function(ChartItem<T>)? onTap;
+  final void Function(ChartItem<T>)? onHover;
+  final void Function()? onHoverExit;
 
   const ChartWidget({
     super.key,
@@ -30,21 +117,157 @@ class ChartWidget extends StatelessWidget {
     this.spacing = 8.0,
     this.horizontalSkew = 8.0,
     this.verticalSkew = 8.0,
+    this.onTap,
+    this.onHover,
+    this.onHoverExit,
   });
+
+  @override
+  State<ChartWidget<T>> createState() => _ChartWidgetState<T>();
+}
+
+class _ChartWidgetState<T> extends State<ChartWidget<T>> {
+  final GlobalKey _canvasKey = GlobalKey();
+  ChartItem<T>? _hoveredItem;
 
   @override
   Widget build(BuildContext context) {
     final maxValueCalculated =
-        maxValue ?? items.fold<double>(0.0, (sum, item) => sum + item.value);
-    return CustomPaint(
-      painter: ChartPainter(
-        items: items,
-        totalValue: maxValueCalculated,
-        spacing: spacing,
-        horizontalSkew: horizontalSkew,
-        verticalSkew: verticalSkew,
+        widget.maxValue ??
+        widget.items.fold<double>(0.0, (sum, item) => sum + item.value);
+
+    final chartPainter = ChartPainter(
+      items: widget.items,
+      totalValue: maxValueCalculated,
+      spacing: widget.spacing,
+      horizontalSkew: widget.horizontalSkew,
+      verticalSkew: widget.verticalSkew,
+    );
+
+    return GestureDetector(
+      onTapUp: widget.onTap == null ? null : _handleTap,
+      child: MouseRegion(
+        onHover: widget.onHover == null ? null : _handleHover,
+        onExit:
+            widget.onHoverExit == null ? null : (_) => widget.onHoverExit!(),
+        child: CustomPaint(key: _canvasKey, painter: chartPainter),
       ),
     );
+  }
+
+  void _handleTap(TapUpDetails details) {
+    final RenderBox renderBox =
+        _canvasKey.currentContext!.findRenderObject() as RenderBox;
+    final localPosition = renderBox.globalToLocal(details.globalPosition);
+
+    final item = _getItemAtPosition(localPosition, renderBox.size);
+    if (item != null && widget.onTap != null) {
+      widget.onTap!(item);
+    }
+  }
+
+  void _handleHover(PointerHoverEvent event) {
+    final RenderBox renderBox =
+        _canvasKey.currentContext!.findRenderObject() as RenderBox;
+    final localPosition = renderBox.globalToLocal(event.position);
+
+    final item = _getItemAtPosition(localPosition, renderBox.size);
+
+    if (item != null && widget.onHover != null && _hoveredItem != item) {
+      _hoveredItem = item;
+      widget.onHover!(item);
+    } else if (item == null &&
+        _hoveredItem != null &&
+        widget.onHoverExit != null) {
+      _hoveredItem = null;
+      widget.onHoverExit!();
+    }
+  }
+
+  ChartItem<T>? _getItemAtPosition(Offset position, Size size) {
+    final twoDSize = Size(
+      size.width - widget.horizontalSkew,
+      size.height - widget.verticalSkew,
+    );
+
+    final total =
+        widget.maxValue ??
+        widget.items.fold<double>(0.0, (sum, item) => sum + item.value);
+    final availableWidth =
+        twoDSize.width - (widget.items.length + 1) * widget.spacing;
+
+    // Calculate all rects and check if point is inside
+    var currentOffset = widget.spacing;
+    for (var i = 0; i < widget.items.length; i++) {
+      final item = widget.items[i];
+      final barWidth = (item.value / total) * availableWidth;
+
+      // Create all faces of the cube to check for interaction
+      final frontRect = Rect.fromLTWH(
+        currentOffset + widget.horizontalSkew,
+        widget.verticalSkew,
+        barWidth,
+        twoDSize.height,
+      );
+
+      final topRect = Rect.fromLTWH(
+        currentOffset,
+        0,
+        barWidth,
+        widget.verticalSkew,
+      );
+
+      final leftRect = Rect.fromLTWH(
+        currentOffset,
+        0,
+        widget.horizontalSkew,
+        twoDSize.height + widget.verticalSkew,
+      );
+
+      // Check if position is inside any of the faces
+      if (frontRect.contains(position) ||
+          _isInsideParallelogram(
+            position,
+            topRect,
+            -widget.horizontalSkew,
+            Axis.horizontal,
+          ) ||
+          _isInsideParallelogram(
+            position,
+            leftRect,
+            -widget.verticalSkew,
+            Axis.vertical,
+          )) {
+        return item;
+      }
+
+      currentOffset += barWidth + widget.spacing;
+    }
+
+    return null;
+  }
+
+  bool _isInsideParallelogram(Offset point, Rect rect, double skew, Axis axis) {
+    late Path path;
+    if (axis == Axis.horizontal) {
+      path =
+          Path()
+            ..moveTo(rect.left, rect.top)
+            ..lineTo(rect.right, rect.top)
+            ..lineTo(rect.right + skew, rect.bottom)
+            ..lineTo(rect.left + skew, rect.bottom)
+            ..close();
+    } else {
+      path =
+          Path()
+            ..moveTo(rect.left, rect.top)
+            ..lineTo(rect.right, rect.top + skew)
+            ..lineTo(rect.right, rect.bottom + skew)
+            ..lineTo(rect.left, rect.bottom)
+            ..close();
+    }
+
+    return path.contains(point);
   }
 }
 

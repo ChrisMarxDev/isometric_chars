@@ -104,6 +104,9 @@ class _MyHomePageState extends State<MyHomePage> {
   double verticalSkew = 16;
   double chartHeight = 150;
 
+  String selectedItem = '';
+  String hoveredItem = '';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,7 +178,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
 
             const SizedBox(height: 24),
-
+            Text('Selected Item: $selectedItem'),
+            Text('Hovered Item: $hoveredItem'),
             SizedBox(
               height: chartHeight,
               child: ChartWidget(
@@ -183,6 +187,21 @@ class _MyHomePageState extends State<MyHomePage> {
                 spacing: spacing,
                 horizontalSkew: horizontalSkew,
                 verticalSkew: verticalSkew,
+                onHover: (p0) {
+                  setState(() {
+                    hoveredItem = p0.identifier;
+                  });
+                },
+                onHoverExit: () {
+                  setState(() {
+                    hoveredItem = '';
+                  });
+                },
+                onTap: (p0) {
+                  setState(() {
+                    selectedItem = p0.identifier;
+                  });
+                },
               ),
             ),
           ],
