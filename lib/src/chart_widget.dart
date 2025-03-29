@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:pseudo_3d_chart/src/util/color_util.dart';
 
 class ChartItem<T> {
@@ -16,11 +15,19 @@ class ChartItem<T> {
     required this.value,
   });
 
-  ChartItem lerp(ChartItem other, double t) {
-    return ChartItem(
+  ChartItem<T> lerp(ChartItem<T> other, double t) {
+    return ChartItem<T>(
       identifier: identifier,
       color: Color.lerp(color, other.color, t) ?? other.color,
       value: lerpDouble(value, other.value, t) ?? other.value,
+    );
+  }
+
+  ChartItem<T> copyWith({double? value}) {
+    return ChartItem<T>(
+      identifier: identifier,
+      color: color,
+      value: value ?? this.value,
     );
   }
 }
@@ -35,6 +42,7 @@ class AnimatedChartWidget<T> extends StatefulWidget {
   final void Function(ChartItem<T>)? onHover;
   final void Function()? onHoverExit;
   final Duration duration;
+  final Curve curve;
 
   const AnimatedChartWidget({
     super.key,
@@ -47,6 +55,7 @@ class AnimatedChartWidget<T> extends StatefulWidget {
     this.onHover,
     this.onHoverExit,
     this.duration = const Duration(milliseconds: 300),
+    this.curve = Curves.easeInOut,
   });
 
   @override
@@ -54,48 +63,157 @@ class AnimatedChartWidget<T> extends StatefulWidget {
 }
 
 class _AnimatedChartWidgetState<T> extends State<AnimatedChartWidget<T>>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _animation;
+    with TickerProviderStateMixin {
+  // Map to track individual item value animations
+  final Map<T, AnimationController> _itemControllers = {};
+  final Map<T, Animation<double>> _itemAnimations = {};
+  final Map<T, double> _previousValues = {};
 
-  List<ChartItem<T>> _items = [];
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
+    _setupAnimations();
   }
 
   @override
   void didUpdateWidget(AnimatedChartWidget<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.items != widget.items) {
-      _items = widget.items;
+
+    // Check for any changes in items
+    final oldItemMap = {
+      for (var item in oldWidget.items) item.identifier: item,
+    };
+    final newItemMap = {for (var item in widget.items) item.identifier: item};
+
+    // Update or create animations for each item
+    for (final item in widget.items) {
+      final id = item.identifier;
+
+      // If the item existed before and value changed
+      if (oldItemMap.containsKey(id) && oldItemMap[id]!.value != item.value) {
+        print(
+          'Value changed for $id: ${oldItemMap[id]!.value} -> ${item.value}',
+        );
+
+        // Save previous value for animation
+        _previousValues[id] = oldItemMap[id]!.value;
+
+        // Create controller if needed
+        if (!_itemControllers.containsKey(id)) {
+          _setupAnimationForItem(id, item);
+        } else {
+          // Reset and start the animation for this item
+          _itemControllers[id]!.duration = widget.duration;
+          _itemAnimations[id] = Tween<double>(
+            begin: _previousValues[id] ?? 0.0,
+            end: item.value,
+          ).animate(
+            CurvedAnimation(parent: _itemControllers[id]!, curve: widget.curve),
+          );
+          _itemControllers[id]!.forward(from: 0.0);
+        }
+      }
+      // New item
+      else if (!oldItemMap.containsKey(id)) {
+        print('New item: $id with value ${item.value}');
+        _setupAnimationForItem(id, item, from: 0.0);
+      }
     }
+
+    // Handle removed items
+    for (final id in oldItemMap.keys) {
+      if (!newItemMap.containsKey(id)) {
+        print('Item removed: $id');
+        // Could animate removal if needed
+        _itemControllers[id]?.dispose();
+        _itemControllers.remove(id);
+        _itemAnimations.remove(id);
+        _previousValues.remove(id);
+      }
+    }
+  }
+
+  void _setupAnimations() {
+    for (final item in widget.items) {
+      _setupAnimationForItem(item.identifier, item);
+    }
+  }
+
+  void _setupAnimationForItem(T id, ChartItem<T> item, {double? from}) {
+    // Create a controller for this item
+    final controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+
+    // Setup the animation
+    final animation = Tween<double>(
+      begin: from ?? 0.0,
+      end: item.value,
+    ).animate(CurvedAnimation(parent: controller, curve: widget.curve));
+
+    // Start the animation
+    controller.forward();
+
+    // Store the controller and animation
+    _itemControllers[id] = controller;
+    _itemAnimations[id] = animation;
+    _previousValues[id] = from ?? 0.0;
+
+    // Set up a listener to rebuild the widget
+    animation.addListener(() {
+      setState(() {
+        // Just to trigger a rebuild
+      });
+    });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    // Dispose all animation controllers
+    for (final controller in _itemControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  // Get the current animated value for an item
+  double _getAnimatedValue(ChartItem<T> item) {
+    final id = item.identifier;
+
+    // If we have an animation for this item, use its current value
+    if (_itemAnimations.containsKey(id) && _itemControllers[id]!.isAnimating) {
+      return _itemAnimations[id]!.value;
+    }
+
+    // Otherwise use the actual value
+    return item.value;
+  }
+
+  // Create animating chart items based on actual items but with animated values
+  List<ChartItem<T>> _getAnimatedItems() {
+    return widget.items.map((item) {
+      return ChartItem<T>(
+        identifier: item.identifier,
+        color: item.color,
+        value: _getAnimatedValue(item),
+      );
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final animatedItems = _getAnimatedItems();
+
     return ChartWidget<T>(
-      items: widget.items,
+      items: animatedItems,
       maxValue: widget.maxValue,
       spacing: widget.spacing,
       horizontalSkew: widget.horizontalSkew,
       verticalSkew: widget.verticalSkew,
       onTap: widget.onTap,
       onHover: widget.onHover,
+      onHoverExit: widget.onHoverExit,
     );
   }
 }

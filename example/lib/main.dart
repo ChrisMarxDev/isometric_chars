@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:pseudo_3d_chart/pseudo_3d_chart.dart';
 
@@ -28,7 +30,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final items = [
+  List<ChartItem> items = [
     ChartItem(
       identifier: 'A Test Value',
       color: const Color(0xFFFF6B6B),
@@ -46,7 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   ];
 
-  final items2 = [
+  List<ChartItem> items2 = [
     ChartItem(
       identifier: 'A Test Value',
       color: const Color(0xFFFF6B6B),
@@ -107,6 +109,131 @@ class _MyHomePageState extends State<MyHomePage> {
   String selectedItem = '';
   String hoveredItem = '';
 
+  void randomizeChartItemValues() {
+    final random = Random();
+
+    setState(() {
+      // First, randomly remove some items (but always keep at least 1)
+      if (items.length > 1 && random.nextBool()) {
+        final indexToRemove = random.nextInt(items.length);
+        items.removeAt(indexToRemove);
+      }
+
+      // Randomize values of existing items
+      final newItems =
+          items.map((item) {
+            return item.copyWith(value: random.nextInt(100).toDouble());
+          }).toList();
+
+      // Randomly add a new item (up to 5 total)
+      if (items.length < 5 && random.nextBool()) {
+        final letters = ['A', 'B', 'C', 'D', 'E'];
+        final availableLetters =
+            letters
+                .where(
+                  (letter) =>
+                      !items.any(
+                        (item) =>
+                            (item.identifier as String).startsWith(letter),
+                      ),
+                )
+                .toList();
+
+        if (availableLetters.isNotEmpty) {
+          final letter =
+              availableLetters[random.nextInt(availableLetters.length)];
+          final colors = [
+            const Color(0xFFFF6B6B), // Coral Red
+            const Color(0xFF4ECDC4), // Turquoise
+            const Color(0xFFFFD166), // Yellow
+            const Color(0xFF06D6A0), // Mint Green
+            const Color(0xFF3A86FF), // Blue
+          ];
+
+          newItems.add(
+            ChartItem(
+              identifier: '$letter Test Value',
+              color: colors[random.nextInt(colors.length)],
+              value: random.nextInt(100).toDouble(),
+            ),
+          );
+        }
+      }
+
+      items = newItems;
+    });
+
+    setState(() {
+      // Same logic for items2
+      // First, randomly remove some items (but always keep at least 3)
+      if (items2.length > 3 && random.nextBool()) {
+        final indexToRemove = random.nextInt(items2.length);
+        items2.removeAt(indexToRemove);
+      }
+
+      // Randomize values of existing items
+      final newItems2 =
+          items2.map((item) {
+            return item.copyWith(value: random.nextInt(100).toDouble());
+          }).toList();
+
+      // Randomly add a new item (up to 10 total)
+      if (items2.length < 10 && random.nextBool()) {
+        final letters = [
+          'A',
+          'B',
+          'C',
+          'D',
+          'E',
+          'F',
+          'G',
+          'H',
+          'I',
+          'J',
+          'K',
+          'L',
+        ];
+        final availableLetters =
+            letters
+                .where(
+                  (letter) =>
+                      !items2.any(
+                        (item) =>
+                            (item.identifier as String).startsWith(letter),
+                      ),
+                )
+                .toList();
+
+        if (availableLetters.isNotEmpty) {
+          final letter =
+              availableLetters[random.nextInt(availableLetters.length)];
+          final colors = [
+            const Color(0xFFFF6B6B), // Coral Red
+            const Color(0xFFFF8E53), // Orange
+            const Color(0xFFFFD166), // Yellow
+            const Color(0xFF06D6A0), // Mint Green
+            const Color(0xFF4ECDC4), // Turquoise
+            const Color(0xFF1A535C), // Dark Teal
+            const Color(0xFF3A86FF), // Blue
+            const Color(0xFF7209B7), // Purple
+            const Color(0xFFF72585), // Pink
+            const Color(0xFFB5179E), // Magenta
+          ];
+
+          newItems2.add(
+            ChartItem(
+              identifier: '$letter Test Value',
+              color: colors[random.nextInt(colors.length)],
+              value: random.nextInt(100).toDouble(),
+            ),
+          );
+        }
+      }
+
+      items2 = newItems2;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,11 +292,16 @@ class _MyHomePageState extends State<MyHomePage> {
             //   },
             // ),
             const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: randomizeChartItemValues,
+              child: const Text('Randomize, Add & Remove Items'),
+            ),
 
             SizedBox(
               height: 64,
-              child: ChartWidget(
-                maxValue: 100,
+              child: AnimatedChartWidget(
+                maxValue: 1000,
+
                 items: items,
                 spacing: spacing,
                 horizontalSkew: horizontalSkew,
@@ -182,7 +314,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Text('Hovered Item: $hoveredItem'),
             SizedBox(
               height: chartHeight,
-              child: ChartWidget(
+              child: AnimatedChartWidget(
                 items: items2,
                 spacing: spacing,
                 horizontalSkew: horizontalSkew,
