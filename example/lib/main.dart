@@ -29,40 +29,162 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final items = [
-    ChartItem(identifier: 'A Test Value', color: Colors.red, value: 10),
-    ChartItem(identifier: 'B Test Value', color: Colors.blue, value: 20),
-    ChartItem(identifier: 'C Test Value', color: Colors.green, value: 30),
+    ChartItem(
+      identifier: 'A Test Value',
+      color: const Color(0xFFFF6B6B),
+      value: 10,
+    ),
+    ChartItem(
+      identifier: 'B Test Value',
+      color: const Color(0xFF4ECDC4),
+      value: 20,
+    ),
+    ChartItem(
+      identifier: 'C Test Value',
+      color: const Color(0xFFFFD166),
+      value: 30,
+    ),
   ];
 
   final items2 = [
-    ChartItem(identifier: 'A Test Value', color: Colors.red, value: 10),
-    ChartItem(identifier: 'B Test Value', color: Colors.blue, value: 20),
-    ChartItem(identifier: 'C Test Value', color: Colors.green, value: 30),
-    ChartItem(identifier: 'D Test Value', color: Colors.yellow, value: 40),
-    ChartItem(identifier: 'E Test Value', color: Colors.orange, value: 50),
-    ChartItem(identifier: 'F Test Value', color: Colors.purple, value: 60),
-    ChartItem(identifier: 'G Test Value', color: Colors.pink, value: 70),
-    ChartItem(identifier: 'H Test Value', color: Colors.brown, value: 80),
-    ChartItem(identifier: 'I Test Value', color: Colors.grey, value: 90),
-    ChartItem(identifier: 'J Test Value', color: Colors.teal, value: 100),
+    ChartItem(
+      identifier: 'A Test Value',
+      color: const Color(0xFFFF6B6B),
+      value: 10,
+    ), // Coral Red
+    ChartItem(
+      identifier: 'B Test Value',
+      color: const Color(0xFFFF8E53),
+      value: 20,
+    ), // Orange
+    ChartItem(
+      identifier: 'C Test Value',
+      color: const Color(0xFFFFD166),
+      value: 30,
+    ), // Yellow
+    ChartItem(
+      identifier: 'D Test Value',
+      color: const Color(0xFF06D6A0),
+      value: 40,
+    ), // Mint Green
+    ChartItem(
+      identifier: 'E Test Value',
+      color: const Color(0xFF4ECDC4),
+      value: 50,
+    ), // Turquoise
+    ChartItem(
+      identifier: 'F Test Value',
+      color: const Color(0xFF1A535C),
+      value: 60,
+    ), // Dark Teal
+    ChartItem(
+      identifier: 'G Test Value',
+      color: const Color(0xFF3A86FF),
+      value: 70,
+    ), // Blue
+    ChartItem(
+      identifier: 'H Test Value',
+      color: const Color(0xFF7209B7),
+      value: 80,
+    ), // Purple
+    ChartItem(
+      identifier: 'I Test Value',
+      color: const Color(0xFFF72585),
+      value: 90,
+    ), // Pink
+    ChartItem(
+      identifier: 'J Test Value',
+      color: const Color(0xFFB5179E),
+      value: 100,
+    ), // Magenta
   ];
+
+  double spacing = 16;
+  double horizontalSkew = 16;
+  double verticalSkew = 16;
+  double chartHeight = 150;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(title: const Text('Pseudo 3D Chart Demo')),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.center,
-          spacing: 16,
           children: [
-            SizedBox(
-              height: 64,
-              child: ChartWidget(maxValue: 100, items: items),
+            const Text('Spacing:'),
+            Slider(
+              value: spacing,
+              min: 0,
+              max: 50,
+              onChanged: (value) {
+                setState(() {
+                  spacing = value;
+                });
+              },
             ),
 
-            SizedBox(height: 128, child: ChartWidget(items: items2)),
+            const Text('Horizontal Skew:'),
+            Slider(
+              value: horizontalSkew,
+              min: 0,
+              max: 50,
+              onChanged: (value) {
+                setState(() {
+                  horizontalSkew = value;
+                });
+              },
+            ),
+
+            const Text('Vertical Skew:'),
+            Slider(
+              value: verticalSkew,
+              min: 0,
+              max: 50,
+              onChanged: (value) {
+                setState(() {
+                  verticalSkew = value;
+                });
+              },
+            ),
+
+            // const Text('Chart Height:'),
+            // Slider(
+            //   value: chartHeight,
+            //   min: 50,
+            //   max: 300,
+            //   onChanged: (value) {
+            //     setState(() {
+            //       chartHeight = value;
+            //     });
+            //   },
+            // ),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              height: 64,
+              child: ChartWidget(
+                maxValue: 100,
+                items: items,
+                spacing: spacing,
+                horizontalSkew: horizontalSkew,
+                verticalSkew: verticalSkew,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              height: chartHeight,
+              child: ChartWidget(
+                items: items2,
+                spacing: spacing,
+                horizontalSkew: horizontalSkew,
+                verticalSkew: verticalSkew,
+              ),
+            ),
           ],
         ),
       ),
