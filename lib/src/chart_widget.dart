@@ -23,10 +23,12 @@ class ChartWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxValueCalculated =
+        maxValue ?? items.fold<double>(0.0, (sum, item) => sum + item.value);
     return Container(
       color: Colors.red.withOpacity(0.1),
       child: CustomPaint(
-        painter: ChartPainter(items: items, totalValue: maxValue),
+        painter: ChartPainter(items: items, totalValue: maxValueCalculated),
       ),
     );
   }
@@ -37,10 +39,10 @@ class ChartPainter extends CustomPainter {
   final double? totalValue;
   static const double spacing = 2.0;
 
-  ChartPainter({required this.items, this.totalValue});
+  ChartPainter({required this.items, required this.totalValue});
 
-  final horizontalSkew = 10.0;
-  final verticalSkew = 10.0;
+  final horizontalSkew = 50.0;
+  final verticalSkew = 20.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -51,13 +53,20 @@ class ChartPainter extends CustomPainter {
 
     final total =
         totalValue ?? items.fold<double>(0.0, (sum, item) => sum + item.value);
-    final maxHeight = twoDSize.height - verticalSkew;
-    final availableWidth =
-        twoDSize.width - (items.length + 1) * spacing - horizontalSkew;
+    final maxHeight = twoDSize.height;
+    final availableWidth = twoDSize.width - (items.length + 1) * spacing;
 
-    var xOffset = spacing;
+    var xOffset = spacing + horizontalSkew;
 
-    // Draw bars from left to right
+    final rects = getRects(
+      items,
+      spacing,
+      horizontalSkew,
+      verticalSkew,
+      total,
+      availableWidth,
+      maxHeight,
+    );
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
 
@@ -68,52 +77,106 @@ class ChartPainter extends CustomPainter {
       final rect = Rect.fromLTWH(xOffset, verticalSkew, barWidth, maxHeight);
 
       // Fill the bar
-      canvas.drawRect(
-        rect,
-        Paint()
-          ..color = item.color
-          ..style = PaintingStyle.fill,
-      );
+      // canvas.drawRect(
+      //   rect,
+      //   Paint()
+      //     ..color = item.color
+      //     ..style = PaintingStyle.fill,
+      // );
 
-      // Draw black border
-      canvas.drawRect(
-        rect,
-        Paint()
-          ..color = Colors.black
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0,
-      );
+      // // Draw black border
+      // canvas.drawRect(
+      //   rect,
+      //   Paint()
+      //     ..color = Colors.black
+      //     ..style = PaintingStyle.stroke
+      //     ..strokeWidth = 1.0,
+      // );
 
-      canvas.drawParallelogram(
+      drawCube(
         rect: rect,
-        skew: -horizontalSkew,
-        paint:
-            Paint()
-              ..color = Colors.black
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.0,
+        color: item.color,
+        canvas: canvas,
+        horizontalSkew: horizontalSkew,
+        verticalSkew: verticalSkew,
       );
-      canvas.drawParallelogram(
-        rect: rect,
-        skew: -verticalSkew,
-        axis: Axis.vertical,
-        paint:
-            Paint()
-              ..color = Colors.blueGrey
-              ..style = PaintingStyle.fill
-              ..strokeWidth = 1.0,
-      );
+      // xOffset += barWidth + spacing + horizontalSkew;
       xOffset += barWidth + spacing;
     }
   }
 
+  Iterable<Rect> getRects(
+    List<ChartItem> items,
+    double spacing,
+    double horizontalSkew,
+    double verticalSkew,
+    double total,
+    double availableWidth,
+    double maxHeight,
+  ) {
+    final result = <Rect>[];
+
+    var xOffset = spacing + horizontalSkew;
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      final barWidth = (item.value / total) * availableWidth;
+      final rect = Rect.fromLTWH(xOffset, verticalSkew, barWidth, maxHeight);
+      result.add(rect);
+      xOffset += barWidth + spacing;
+    }
+    return result;
+  }
+
   void drawCube({
     required Rect rect,
-    required Paint paint,
+    required Color color,
     required Canvas canvas,
-    double horizontalSkew = 10.0,
+    double horizontalSkew = 20.0,
     double verticalSkew = 10.0,
-  }) {}
+  }) {
+    // Draw front face (rectangle)
+    final basePaint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill;
+
+    final borderPaint =
+        Paint()
+          ..color = Colors.black
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0;
+
+    canvas.drawRect(rect, basePaint);
+
+    final topRect = Rect.fromLTWH(
+      rect.left - horizontalSkew,
+      rect.top - verticalSkew,
+      rect.width,
+      verticalSkew,
+    );
+
+    // Draw left side (parallelogram)
+    canvas.drawParallelogram(
+      rect: topRect,
+      skew: -horizontalSkew,
+      axis: Axis.horizontal,
+      paint: basePaint..color = color.withOpacity(0.85),
+    );
+
+    final leftRect = Rect.fromLTWH(
+      rect.left - horizontalSkew,
+      rect.top - verticalSkew,
+      horizontalSkew,
+      rect.height,
+    );
+
+    canvas.drawParallelogram(
+      rect: leftRect,
+      skew: -verticalSkew,
+      axis: Axis.vertical,
+      paint: basePaint..color = color.withOpacity(0.85),
+    );
+  }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
