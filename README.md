@@ -2,7 +2,7 @@
 
 A Flutter package that provides beautiful pseudo-3D charts with an isometric perspective. This package allows you to create visually appealing data visualizations with a unique depth effect.
 
-![Example Chart](assets/iso_chart.gif)
+![Example Chart](/iso_chart.gif)
 
 ## Features
 
