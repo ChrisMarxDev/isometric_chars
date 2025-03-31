@@ -7,8 +7,12 @@ A Flutter package that provides beautiful pseudo-3D charts with an isometric per
 ## Features
 
 - 🎨 Pseudo-3D visualization with isometric perspective
-- 📊 Support for different time periods (Last Week, This Week, Forecasted)
-- 🎛️ Customizable chart controls
+- 🎯 Interactive features (hover and tap callbacks)
+- 🎛️ Customizable chart styling:
+  - Spacing between bars
+  - Horizontal and vertical skew angles
+  - Custom colors for each bar
+  - Border color and width
 - 📱 Responsive design that works across all Flutter platforms
 - 🎯 Easy-to-use API
 
@@ -32,17 +36,29 @@ class ChartDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Pseudo3DChart(
-        data: [
-          ChartData(
-            label: 'Services',
-            values: [100, 150, 200],
+      body: IsometricChartWidget<String>(
+        items: [
+          ChartItem<String>(
+            identifier: 'Item 1',
+            value: 100,
             color: Colors.blue,
           ),
-          // Add more data points as needed
+          ChartItem<String>(
+            identifier: 'Item 2',
+            value: 200,
+            color: Colors.green,
+          ),
+          // Add more items as needed
         ],
-        timePeriod: TimePeriod.lastWeek,
-        // Additional configuration options
+        spacing: 4, // Space between bars
+        horizontalSkew: 16, // Horizontal perspective angle
+        verticalSkew: 8, // Vertical perspective angle
+        onHover: (item) {
+          // Handle hover events
+        },
+        onTap: (item) {
+          // Handle tap events
+        },
       ),
     );
   }
@@ -53,11 +69,13 @@ class ChartDemo extends StatelessWidget {
 
 The chart can be customized with various options:
 
-- Color schemes
-- Time period selection
-- Chart dimensions
-- Animation duration
-- View perspective
+- `spacing`: Controls the space between bars
+- `horizontalSkew`: Adjusts the horizontal perspective angle
+- `verticalSkew`: Adjusts the vertical perspective angle
+- `borderColor`: Customize the border color of the chart
+- `borderWidth`: Set the width of the chart border
+- Custom colors for each bar item
+- Interactive callbacks for hover and tap events
 
 ## Contributing
 
