@@ -1,7 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:pseudo_3d_chart/pseudo_3d_chart.dart';
+import 'package:isometric_charts/isometric_charts.dart';
+import 'package:isometric_charts/src/util/color_util.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,9 +14,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Isometric Charts',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
       home: const MyHomePage(),
     );
@@ -29,313 +31,485 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  List<ChartItem> items = [
-    ChartItem(
-      identifier: 'A Test Value',
-      color: const Color(0xFFFF6B6B),
-      value: 10,
-    ),
-    ChartItem(
-      identifier: 'B Test Value',
-      color: const Color(0xFF4ECDC4),
-      value: 20,
-    ),
-    ChartItem(
-      identifier: 'C Test Value',
-      color: const Color(0xFFFFD166),
-      value: 30,
-    ),
-  ];
+class ExampleData {
+  final String name;
+  final double value;
+  final Color color;
 
-  List<ChartItem> items2 = [
-    ChartItem(
-      identifier: 'A Test Value',
-      color: const Color(0xFFFF6B6B),
-      value: 10,
-    ), // Coral Red
-    ChartItem(
-      identifier: 'B Test Value',
-      color: const Color(0xFFFF8E53),
-      value: 20,
-    ), // Orange
-    ChartItem(
-      identifier: 'C Test Value',
-      color: const Color(0xFFFFD166),
-      value: 30,
-    ), // Yellow
-    ChartItem(
-      identifier: 'D Test Value',
-      color: const Color(0xFF06D6A0),
-      value: 40,
-    ), // Mint Green
-    ChartItem(
-      identifier: 'E Test Value',
-      color: const Color(0xFF4ECDC4),
-      value: 50,
-    ), // Turquoise
-    ChartItem(
-      identifier: 'F Test Value',
-      color: const Color(0xFF1A535C),
-      value: 60,
-    ), // Dark Teal
-    ChartItem(
-      identifier: 'G Test Value',
-      color: const Color(0xFF3A86FF),
-      value: 70,
-    ), // Blue
-    ChartItem(
-      identifier: 'H Test Value',
-      color: const Color(0xFF7209B7),
-      value: 80,
-    ), // Purple
-    ChartItem(
-      identifier: 'I Test Value',
-      color: const Color(0xFFF72585),
-      value: 90,
-    ), // Pink
-    ChartItem(
-      identifier: 'J Test Value',
-      color: const Color(0xFFB5179E),
+  ExampleData({required this.name, required this.value, required this.color});
+
+  ExampleData copyWith({double? value, Color? color}) {
+    return ExampleData(
+      name: name,
+      value: value ?? this.value,
+      color: color ?? this.color,
+    );
+  }
+}
+
+enum TimePeriod {
+  lastWeek,
+  thisWeek,
+  forecasted;
+
+  String get label {
+    switch (this) {
+      case TimePeriod.thisWeek:
+        return 'This Week';
+      case TimePeriod.lastWeek:
+        return 'Last Week';
+      case TimePeriod.forecasted:
+        return 'Forecasted';
+    }
+  }
+}
+
+final Map<TimePeriod, List<ExampleData>> timePeriodData = {
+  TimePeriod.thisWeek: [
+    ExampleData(
+      name: 'Agriculture',
       value: 100,
-    ), // Magenta
-  ];
+      color: const Color(0xFF4CAF50), // Green
+    ),
+    ExampleData(
+      name: 'Industry',
+      value: 300,
+      color: const Color(0xFF2196F3), // Blue
+    ),
+    ExampleData(
+      name: 'Services',
+      value: 200,
+      color: const Color(0xFFFFC107), // Amber
+    ),
+  ],
+  TimePeriod.lastWeek: [
+    ExampleData(name: 'Agriculture', value: 60, color: const Color(0xFF4CAF50)),
+    ExampleData(name: 'Industry', value: 220, color: const Color(0xFF2196F3)),
+    ExampleData(name: 'Services', value: 150, color: const Color(0xFFFFC107)),
+  ],
+  TimePeriod.forecasted: [
+    ExampleData(
+      name: 'Agriculture',
+      value: 140,
+      color: const Color(0xFF4CAF50),
+    ),
+    ExampleData(name: 'Industry', value: 380, color: const Color(0xFF2196F3)),
+    ExampleData(name: 'Services', value: 250, color: const Color(0xFFFFC107)),
+  ],
+};
 
-  double spacing = 16;
+final Map<TimePeriod, Map<String, List<ExampleData>>> detailedData = {
+  TimePeriod.thisWeek: {
+    'Agriculture': [
+      ExampleData(name: 'Corn', value: 100, color: const Color(0xFF81C784)),
+      ExampleData(name: 'Wheat', value: 300, color: const Color(0xFF66BB6A)),
+      ExampleData(name: 'Soybeans', value: 200, color: const Color(0xFF4CAF50)),
+      ExampleData(name: 'Potatoes', value: 400, color: const Color(0xFF388E3C)),
+      ExampleData(name: 'Tomatoes', value: 500, color: const Color(0xFF2E7D32)),
+    ],
+    'Industry': [
+      ExampleData(name: 'Steel', value: 100, color: const Color(0xFF64B5F6)),
+      ExampleData(
+        name: 'Automobiles',
+        value: 300,
+        color: const Color(0xFF42A5F5),
+      ),
+      ExampleData(
+        name: 'Machinery',
+        value: 200,
+        color: const Color(0xFF2196F3),
+      ),
+      ExampleData(
+        name: 'Electronics',
+        value: 400,
+        color: const Color(0xFF1E88E5),
+      ),
+    ],
+    'Services': [
+      ExampleData(
+        name: 'Healthcare',
+        value: 100,
+        color: const Color(0xFFFFD54F),
+      ),
+      ExampleData(
+        name: 'Education',
+        value: 300,
+        color: const Color(0xFFFFCA28),
+      ),
+      ExampleData(
+        name: 'Financial',
+        value: 200,
+        color: const Color(0xFFFFC107),
+      ),
+      ExampleData(name: 'Retail', value: 400, color: const Color(0xFFFFB300)),
+    ],
+  },
+  TimePeriod.lastWeek: {
+    'Agriculture': [
+      ExampleData(name: 'Corn', value: 80, color: const Color(0xFF81C784)),
+      ExampleData(name: 'Wheat', value: 250, color: const Color(0xFF66BB6A)),
+      ExampleData(name: 'Soybeans', value: 150, color: const Color(0xFF4CAF50)),
+      ExampleData(name: 'Potatoes', value: 300, color: const Color(0xFF388E3C)),
+      ExampleData(name: 'Tomatoes', value: 400, color: const Color(0xFF2E7D32)),
+    ],
+    'Industry': [
+      ExampleData(name: 'Steel', value: 80, color: const Color(0xFF64B5F6)),
+      ExampleData(
+        name: 'Automobiles',
+        value: 250,
+        color: const Color(0xFF42A5F5),
+      ),
+      ExampleData(
+        name: 'Machinery',
+        value: 150,
+        color: const Color(0xFF2196F3),
+      ),
+      ExampleData(
+        name: 'Electronics',
+        value: 300,
+        color: const Color(0xFF1E88E5),
+      ),
+    ],
+    'Services': [
+      ExampleData(
+        name: 'Healthcare',
+        value: 80,
+        color: const Color(0xFFFFD54F),
+      ),
+      ExampleData(
+        name: 'Education',
+        value: 250,
+        color: const Color(0xFFFFCA28),
+      ),
+      ExampleData(
+        name: 'Financial',
+        value: 150,
+        color: const Color(0xFFFFC107),
+      ),
+      ExampleData(name: 'Retail', value: 300, color: const Color(0xFFFFB300)),
+    ],
+  },
+  TimePeriod.forecasted: {
+    'Agriculture': [
+      ExampleData(name: 'Corn', value: 120, color: const Color(0xFF81C784)),
+      ExampleData(name: 'Wheat', value: 350, color: const Color(0xFF66BB6A)),
+      ExampleData(name: 'Soybeans', value: 250, color: const Color(0xFF4CAF50)),
+      ExampleData(name: 'Potatoes', value: 500, color: const Color(0xFF388E3C)),
+      ExampleData(name: 'Tomatoes', value: 600, color: const Color(0xFF2E7D32)),
+    ],
+    'Industry': [
+      ExampleData(name: 'Steel', value: 120, color: const Color(0xFF64B5F6)),
+      ExampleData(
+        name: 'Automobiles',
+        value: 350,
+        color: const Color(0xFF42A5F5),
+      ),
+      ExampleData(
+        name: 'Machinery',
+        value: 250,
+        color: const Color(0xFF2196F3),
+      ),
+      ExampleData(
+        name: 'Electronics',
+        value: 500,
+        color: const Color(0xFF1E88E5),
+      ),
+    ],
+    'Services': [
+      ExampleData(
+        name: 'Healthcare',
+        value: 120,
+        color: const Color(0xFFFFD54F),
+      ),
+      ExampleData(
+        name: 'Education',
+        value: 350,
+        color: const Color(0xFFFFCA28),
+      ),
+      ExampleData(
+        name: 'Financial',
+        value: 250,
+        color: const Color(0xFFFFC107),
+      ),
+      ExampleData(name: 'Retail', value: 500, color: const Color(0xFFFFB300)),
+    ],
+  },
+};
+
+class _MyHomePageState extends State<MyHomePage> {
+  double spacing = 4;
   double horizontalSkew = 16;
-  double verticalSkew = 16;
-  double chartHeight = 150;
+  double verticalSkew = 8;
+  String? selectedItem;
+  String? hoveredItem;
+  List<ChartItem<String>> chartItems = [];
+  TimePeriod selectedTimePeriod = TimePeriod.thisWeek;
 
-  String selectedItem = '';
-  String hoveredItem = '';
+  @override
+  void initState() {
+    super.initState();
+    _updateChartItems();
+  }
 
-  void randomizeChartItemValues() {
-    final random = Random();
-
-    setState(() {
-      // First, randomly remove some items (but always keep at least 1)
-      if (items.length > 1 && random.nextBool()) {
-        final indexToRemove = random.nextInt(items.length);
-        items.removeAt(indexToRemove);
-      }
-
-      // Randomize values of existing items
-      final newItems =
-          items.map((item) {
-            return item.copyWith(value: random.nextInt(100).toDouble());
-          }).toList();
-
-      // Randomly add a new item (up to 5 total)
-      if (items.length < 5 && random.nextBool()) {
-        final letters = ['A', 'B', 'C', 'D', 'E'];
-        final availableLetters =
-            letters
-                .where(
-                  (letter) =>
-                      !items.any(
-                        (item) =>
-                            (item.identifier as String).startsWith(letter),
-                      ),
-                )
-                .toList();
-
-        if (availableLetters.isNotEmpty) {
-          final letter =
-              availableLetters[random.nextInt(availableLetters.length)];
-          final colors = [
-            const Color(0xFFFF6B6B), // Coral Red
-            const Color(0xFF4ECDC4), // Turquoise
-            const Color(0xFFFFD166), // Yellow
-            const Color(0xFF06D6A0), // Mint Green
-            const Color(0xFF3A86FF), // Blue
-          ];
-
-          newItems.add(
-            ChartItem(
-              identifier: '$letter Test Value',
-              color: colors[random.nextInt(colors.length)],
-              value: random.nextInt(100).toDouble(),
-            ),
+  void _updateChartItems() {
+    chartItems =
+        timePeriodData[selectedTimePeriod]!.map((data) {
+          return ChartItem<String>(
+            identifier: data.name,
+            value: data.value,
+            color: data.color,
           );
-        }
-      }
-
-      items = newItems;
-    });
-
-    setState(() {
-      // Same logic for items2
-      // First, randomly remove some items (but always keep at least 3)
-      if (items2.length > 3 && random.nextBool()) {
-        final indexToRemove = random.nextInt(items2.length);
-        items2.removeAt(indexToRemove);
-      }
-
-      // Randomize values of existing items
-      final newItems2 =
-          items2.map((item) {
-            return item.copyWith(value: random.nextInt(100).toDouble());
-          }).toList();
-
-      // Randomly add a new item (up to 10 total)
-      if (items2.length < 10 && random.nextBool()) {
-        final letters = [
-          'A',
-          'B',
-          'C',
-          'D',
-          'E',
-          'F',
-          'G',
-          'H',
-          'I',
-          'J',
-          'K',
-          'L',
-        ];
-        final availableLetters =
-            letters
-                .where(
-                  (letter) =>
-                      !items2.any(
-                        (item) =>
-                            (item.identifier as String).startsWith(letter),
-                      ),
-                )
-                .toList();
-
-        if (availableLetters.isNotEmpty) {
-          final letter =
-              availableLetters[random.nextInt(availableLetters.length)];
-          final colors = [
-            const Color(0xFFFF6B6B), // Coral Red
-            const Color(0xFFFF8E53), // Orange
-            const Color(0xFFFFD166), // Yellow
-            const Color(0xFF06D6A0), // Mint Green
-            const Color(0xFF4ECDC4), // Turquoise
-            const Color(0xFF1A535C), // Dark Teal
-            const Color(0xFF3A86FF), // Blue
-            const Color(0xFF7209B7), // Purple
-            const Color(0xFFF72585), // Pink
-            const Color(0xFFB5179E), // Magenta
-          ];
-
-          newItems2.add(
-            ChartItem(
-              identifier: '$letter Test Value',
-              color: colors[random.nextInt(colors.length)],
-              value: random.nextInt(100).toDouble(),
-            ),
-          );
-        }
-      }
-
-      items2 = newItems2;
-    });
+        }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pseudo 3D Chart Demo')),
+      appBar: AppBar(
+        title: const Text('Pseudo 3D Chart Demo'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Spacing:'),
-            Slider(
-              value: spacing,
-              min: 0,
-              max: 50,
-              onChanged: (value) {
-                setState(() {
-                  spacing = value;
-                });
-              },
-            ),
-
-            const Text('Horizontal Skew:'),
-            Slider(
-              value: horizontalSkew,
-              min: 0,
-              max: 50,
-              onChanged: (value) {
-                setState(() {
-                  horizontalSkew = value;
-                });
-              },
-            ),
-
-            const Text('Vertical Skew:'),
-            Slider(
-              value: verticalSkew,
-              min: 0,
-              max: 50,
-              onChanged: (value) {
-                setState(() {
-                  verticalSkew = value;
-                });
-              },
-            ),
-
-            // const Text('Chart Height:'),
-            // Slider(
-            //   value: chartHeight,
-            //   min: 50,
-            //   max: 300,
-            //   onChanged: (value) {
-            //     setState(() {
-            //       chartHeight = value;
-            //     });
-            //   },
-            // ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: randomizeChartItemValues,
-              child: const Text('Randomize, Add & Remove Items'),
-            ),
-
-            SizedBox(
-              height: 64,
-              child: AnimatedChartWidget(
-                maxValue: 1000,
-
-                items: items,
-                spacing: spacing,
-                horizontalSkew: horizontalSkew,
-                verticalSkew: verticalSkew,
+            Card(
+              child: ExpansionTile(
+                title: const Text(
+                  'Chart Controls',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Spacing:'),
+                        Slider(
+                          value: spacing,
+                          min: 0,
+                          max: 50,
+                          onChanged: (value) {
+                            setState(() {
+                              spacing = value;
+                            });
+                          },
+                        ),
+                        const Text('Horizontal Skew:'),
+                        Slider(
+                          value: horizontalSkew,
+                          min: 0,
+                          max: 50,
+                          onChanged: (value) {
+                            setState(() {
+                              horizontalSkew = value;
+                            });
+                          },
+                        ),
+                        const Text('Vertical Skew:'),
+                        Slider(
+                          value: verticalSkew,
+                          min: 0,
+                          max: 50,
+                          onChanged: (value) {
+                            setState(() {
+                              verticalSkew = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-
             const SizedBox(height: 24),
-            Text('Selected Item: $selectedItem'),
-            Text('Hovered Item: $hoveredItem'),
-            SizedBox(
-              height: chartHeight,
-              child: AnimatedChartWidget(
-                items: items2,
-                spacing: spacing,
-                horizontalSkew: horizontalSkew,
-                verticalSkew: verticalSkew,
-                onHover: (p0) {
-                  setState(() {
-                    hoveredItem = p0.identifier;
-                  });
-                },
-                onHoverExit: () {
-                  setState(() {
-                    hoveredItem = '';
-                  });
-                },
-                onTap: (p0) {
-                  setState(() {
-                    selectedItem = p0.identifier;
-                  });
-                },
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Time Period',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SegmentedButton<TimePeriod>(
+                      segments:
+                          TimePeriod.values.map((period) {
+                            return ButtonSegment<TimePeriod>(
+                              value: period,
+                              label: Text(period.label),
+                            );
+                          }).toList(),
+                      selected: {selectedTimePeriod},
+                      onSelectionChanged: (Set<TimePeriod> newSelection) {
+                        setState(() {
+                          selectedTimePeriod = newSelection.first;
+                          _updateChartItems();
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
+            const SizedBox(height: 24),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Chart',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 64,
+                      width: double.infinity,
+                      child: IsometricChartWidget<String>(
+                        items: chartItems,
+                        maxValue: 800,
+                        spacing: spacing,
+                        horizontalSkew: horizontalSkew,
+                        verticalSkew: verticalSkew,
+                        onHover: (item) {
+                          setState(() {
+                            // Reset all items to their original colors first
+                            for (var i = 0; i < chartItems.length; i++) {
+                              chartItems[i] = ChartItem<String>(
+                                identifier: chartItems[i].identifier,
+                                value: chartItems[i].value,
+                                color:
+                                    timePeriodData[selectedTimePeriod]![i]
+                                        .color,
+                              );
+                            }
+
+                            // If hovering over an item, highlight it by blending with white
+                            if (item != null) {
+                              final index = chartItems.indexWhere(
+                                (i) => i.identifier == item.identifier,
+                              );
+                              if (index != -1) {
+                                final originalColor =
+                                    timePeriodData[selectedTimePeriod]![index]
+                                        .color;
+                                chartItems[index] = ChartItem<String>(
+                                  identifier: item.identifier,
+                                  value: item.value,
+                                  color: originalColor.blend(Colors.white, 0.3),
+                                );
+                              }
+                            }
+                            hoveredItem = item?.identifier;
+                          });
+                        },
+                        onTap: (item) {
+                          setState(() {
+                            selectedItem = item.identifier;
+                          });
+                        },
+                      ),
+                    ),
+                    ...[const SizedBox(height: 8), Text(hoveredItem ?? ' ')],
+                  ],
+                ),
+              ),
+            ),
+            ...[
+              const SizedBox(height: 24),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  final offset = animation.drive(
+                    Tween<Offset>(
+                      begin: const Offset(-0.25, 0.0),
+                      end: Offset.zero,
+                    ),
+                  );
+                  return ColoredBox(
+                    color:
+                        animation.isAnimating
+                            ? Theme.of(context).colorScheme.surface
+                            : Colors.transparent,
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(position: offset, child: child),
+                    ),
+                  );
+                },
+                child:
+                    selectedItem == null
+                        ? const SizedBox.shrink()
+                        : Card(
+                          key: Key(selectedItem!),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Details for $selectedItem',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        setState(() {
+                                          selectedItem = null;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: 64,
+                                  width: double.infinity,
+
+                                  child: IsometricChartWidget<String>(
+                                    borderColor: Colors.redAccent,
+                                    borderWidth: 2,
+                                    items:
+                                        detailedData[selectedTimePeriod]![selectedItem!]!
+                                            .map((data) {
+                                              return ChartItem<String>(
+                                                identifier: data.name,
+                                                value: data.value,
+                                                color: data.color,
+                                              );
+                                            })
+                                            .toList(),
+                                    spacing: spacing,
+                                    horizontalSkew: horizontalSkew,
+                                    verticalSkew: verticalSkew,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+              ),
+            ],
           ],
         ),
       ),

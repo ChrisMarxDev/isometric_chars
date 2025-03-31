@@ -75,6 +75,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  isometric_charts:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "0.0.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -139,13 +146,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
-  pseudo_3d_chart:
-    dependency: "direct main"
-    description:
-      path: ".."
-      relative: true
-    source: path
-    version: "0.0.1"
   sky_engine:
     dependency: transitive
     description: flutter

@@ -2,17 +2,19 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:pseudo_3d_chart/src/util/color_util.dart';
+import 'package:isometric_charts/src/util/color_util.dart';
 
 class ChartItem<T> {
   final T identifier;
   final Color color;
   final double value;
+  final String? semanticLabel;
 
   ChartItem({
     required this.identifier,
     required this.color,
     required this.value,
+    this.semanticLabel,
   });
 
   ChartItem<T> lerp(ChartItem<T> other, double t) {
@@ -32,19 +34,31 @@ class ChartItem<T> {
   }
 }
 
-class AnimatedChartWidget<T> extends StatefulWidget {
+final baseBorderPaint =
+    Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+enum IsometricShapeSide { top, side, front }
+
+class IsometricChartWidget<T> extends StatefulWidget {
   final List<ChartItem<T>> items;
   final double? maxValue;
   final double spacing;
   final double horizontalSkew;
   final double verticalSkew;
   final void Function(ChartItem<T>)? onTap;
-  final void Function(ChartItem<T>)? onHover;
-  final void Function()? onHoverExit;
+  final void Function(ChartItem<T>?)? onHover;
   final Duration duration;
   final Curve curve;
+  final bool animate;
+  final Color borderColor;
+  final double borderWidth;
 
-  const AnimatedChartWidget({
+  final Color Function(ChartItem<T> item, int index)? colorFunction;
+
+  const IsometricChartWidget({
     super.key,
     required this.items,
     this.maxValue,
@@ -53,16 +67,20 @@ class AnimatedChartWidget<T> extends StatefulWidget {
     this.verticalSkew = 8.0,
     this.onTap,
     this.onHover,
-    this.onHoverExit,
     this.duration = const Duration(milliseconds: 300),
     this.curve = Curves.easeInOut,
+    this.colorFunction,
+    this.borderColor = Colors.black,
+    this.borderWidth = 1.0,
+    this.animate = true,
   });
 
   @override
-  State<AnimatedChartWidget<T>> createState() => _AnimatedChartWidgetState<T>();
+  State<IsometricChartWidget<T>> createState() =>
+      _IsometricChartWidgetState<T>();
 }
 
-class _AnimatedChartWidgetState<T> extends State<AnimatedChartWidget<T>>
+class _IsometricChartWidgetState<T> extends State<IsometricChartWidget<T>>
     with TickerProviderStateMixin {
   // Map to track individual item value animations
   final Map<T, AnimationController> _itemControllers = {};
@@ -76,7 +94,7 @@ class _AnimatedChartWidgetState<T> extends State<AnimatedChartWidget<T>>
   }
 
   @override
-  void didUpdateWidget(AnimatedChartWidget<T> oldWidget) {
+  void didUpdateWidget(IsometricChartWidget<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // Check for any changes in items
@@ -213,7 +231,8 @@ class _AnimatedChartWidgetState<T> extends State<AnimatedChartWidget<T>>
       verticalSkew: widget.verticalSkew,
       onTap: widget.onTap,
       onHover: widget.onHover,
-      onHoverExit: widget.onHoverExit,
+      borderColor: widget.borderColor,
+      borderWidth: widget.borderWidth,
     );
   }
 }
@@ -225,8 +244,9 @@ class ChartWidget<T> extends StatefulWidget {
   final double horizontalSkew;
   final double verticalSkew;
   final void Function(ChartItem<T>)? onTap;
-  final void Function(ChartItem<T>)? onHover;
-  final void Function()? onHoverExit;
+  final void Function(ChartItem<T>?)? onHover;
+  final Color borderColor;
+  final double borderWidth;
 
   const ChartWidget({
     super.key,
@@ -237,7 +257,8 @@ class ChartWidget<T> extends StatefulWidget {
     this.verticalSkew = 8.0,
     this.onTap,
     this.onHover,
-    this.onHoverExit,
+    required this.borderColor,
+    required this.borderWidth,
   });
 
   @override
@@ -254,20 +275,20 @@ class _ChartWidgetState<T> extends State<ChartWidget<T>> {
         widget.maxValue ??
         widget.items.fold<double>(0.0, (sum, item) => sum + item.value);
 
-    final chartPainter = ChartPainter(
+    final chartPainter = ChartPainter<T>(
       items: widget.items,
       totalValue: maxValueCalculated,
       spacing: widget.spacing,
       horizontalSkew: widget.horizontalSkew,
       verticalSkew: widget.verticalSkew,
+      borderColor: widget.borderColor,
+      borderWidth: widget.borderWidth,
     );
 
     return GestureDetector(
       onTapUp: widget.onTap == null ? null : _handleTap,
       child: MouseRegion(
         onHover: widget.onHover == null ? null : _handleHover,
-        onExit:
-            widget.onHoverExit == null ? null : (_) => widget.onHoverExit!(),
         child: CustomPaint(key: _canvasKey, painter: chartPainter),
       ),
     );
@@ -291,14 +312,8 @@ class _ChartWidgetState<T> extends State<ChartWidget<T>> {
 
     final item = _getItemAtPosition(localPosition, renderBox.size);
 
-    if (item != null && widget.onHover != null && _hoveredItem != item) {
-      _hoveredItem = item;
+    if (widget.onHover != null) {
       widget.onHover!(item);
-    } else if (item == null &&
-        _hoveredItem != null &&
-        widget.onHoverExit != null) {
-      _hoveredItem = null;
-      widget.onHoverExit!();
     }
   }
 
@@ -372,29 +387,31 @@ class _ChartWidgetState<T> extends State<ChartWidget<T>> {
           Path()
             ..moveTo(rect.left, rect.top)
             ..lineTo(rect.right, rect.top)
-            ..lineTo(rect.right + skew, rect.bottom)
-            ..lineTo(rect.left + skew, rect.bottom)
-            ..close();
+            ..lineTo(rect.right - skew, rect.bottom)
+            ..lineTo(rect.left - skew, rect.bottom)
+            ..lineTo(rect.left, rect.top);
     } else {
       path =
           Path()
             ..moveTo(rect.left, rect.top)
-            ..lineTo(rect.right, rect.top + skew)
-            ..lineTo(rect.right, rect.bottom + skew)
+            ..lineTo(rect.right, rect.top - skew)
+            ..lineTo(rect.right, rect.bottom - skew)
             ..lineTo(rect.left, rect.bottom)
-            ..close();
+            ..lineTo(rect.left, rect.top);
     }
 
     return path.contains(point);
   }
 }
 
-class ChartPainter extends CustomPainter {
-  final List<ChartItem> items;
+class ChartPainter<T> extends CustomPainter {
+  final List<ChartItem<T>> items;
   final double? totalValue;
   final double spacing;
   final double horizontalSkew;
   final double verticalSkew;
+  final Color borderColor;
+  final double borderWidth;
 
   ChartPainter({
     required this.items,
@@ -402,7 +419,15 @@ class ChartPainter extends CustomPainter {
     required this.spacing,
     required this.horizontalSkew,
     required this.verticalSkew,
+    required this.borderColor,
+    required this.borderWidth,
   });
+
+  Paint get _borderPaint =>
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -416,15 +441,15 @@ class ChartPainter extends CustomPainter {
     final maxHeight = twoDSize.height;
     final availableWidth = twoDSize.width - (items.length + 1) * spacing;
 
-    final rects = getRects(
-      items,
-      spacing,
-      horizontalSkew,
-      verticalSkew,
-      total,
-      availableWidth,
-      maxHeight,
-    );
+    // final rects = getRects(
+    //   items,
+    //   spacing,
+    //   horizontalSkew,
+    //   verticalSkew,
+    //   total,
+    //   availableWidth,
+    //   maxHeight,
+    // );
 
     // Calculate positions for all bars first
     final positions = <double>[];
@@ -461,7 +486,7 @@ class ChartPainter extends CustomPainter {
   }
 
   Iterable<Rect> getRects(
-    List<ChartItem> items,
+    List<ChartItem<T>> items,
     double spacing,
     double horizontalSkew,
     double verticalSkew,
@@ -495,15 +520,7 @@ class ChartPainter extends CustomPainter {
           ..color = color
           ..style = PaintingStyle.fill;
 
-    final strokePaint =
-        Paint()
-          ..color = Colors.black
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0;
-
     // Define all faces of the cuboid
-
-    // Front face
     final frontRect = rect;
 
     // Top face
@@ -522,39 +539,29 @@ class ChartPainter extends CustomPainter {
       rect.height,
     );
 
-    // First draw back wireframe edges
-    final backPath = Path();
+    // Draw visible back edges first
+    final backPath =
+        Path()
+          ..moveTo(rect.right, rect.top)
+          ..lineTo(rect.right - horizontalSkew, rect.top - verticalSkew)
+          ..moveTo(rect.right - horizontalSkew, rect.top - verticalSkew)
+          ..lineTo(rect.right - horizontalSkew, rect.bottom - verticalSkew)
+          ..moveTo(rect.right, rect.bottom)
+          ..lineTo(rect.right - horizontalSkew, rect.bottom - verticalSkew);
 
-    // Top-right edge
-    backPath.moveTo(rect.right, rect.top);
-    backPath.lineTo(rect.right - horizontalSkew, rect.top - verticalSkew);
+    canvas.drawPath(backPath, _borderPaint);
 
-    // Back-right edge
-    backPath.moveTo(rect.right - horizontalSkew, rect.top - verticalSkew);
-    backPath.lineTo(rect.right - horizontalSkew, rect.bottom - verticalSkew);
+    // Draw faces in correct order for proper occlusion
 
-    // Bottom-right edge
-    backPath.moveTo(rect.right, rect.bottom);
-    backPath.lineTo(rect.right - horizontalSkew, rect.bottom - verticalSkew);
+    // 1. Draw front face filled
+    canvas.drawRect(frontRect, fillPaint..color = color);
 
-    canvas.drawPath(backPath, strokePaint);
-
-    // Draw background faces (parallelograms first)
-
-    // 1. Draw left face filled
+    // 2. Draw left face filled
     canvas.drawParallelogram(
       rect: leftRect,
       skew: -verticalSkew,
       axis: Axis.vertical,
       paint: fillPaint..color = color.blend(Color(0xFF000000), 0.5),
-    );
-
-    // 2. Draw left face outline
-    canvas.drawParallelogram(
-      rect: leftRect,
-      skew: -verticalSkew,
-      axis: Axis.vertical,
-      paint: strokePaint,
     );
 
     // 3. Draw top face filled
@@ -565,21 +572,26 @@ class ChartPainter extends CustomPainter {
       paint: fillPaint..color = color.blend(Color(0xFF000000), 0.3),
     );
 
-    // 4. Draw top face outline
+    // Draw all borders last to ensure clean edges
+
+    // 4. Draw front face outline
+    canvas.drawRect(frontRect, _borderPaint);
+
+    // 5. Draw left face outline
+    canvas.drawParallelogram(
+      rect: leftRect,
+      skew: -verticalSkew,
+      axis: Axis.vertical,
+      paint: _borderPaint,
+    );
+
+    // 6. Draw top face outline
     canvas.drawParallelogram(
       rect: topRect,
       skew: -horizontalSkew,
       axis: Axis.horizontal,
-      paint: strokePaint,
+      paint: _borderPaint,
     );
-
-    // Draw foreground face last
-
-    // 5. Draw front face filled
-    canvas.drawRect(frontRect, fillPaint..color = color);
-
-    // 6. Draw front face outline
-    canvas.drawRect(frontRect, strokePaint);
   }
 
   @override
