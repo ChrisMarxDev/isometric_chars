@@ -1,8 +1,5 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:isometric_charts/isometric_charts.dart';
-import 'package:isometric_charts/src/util/color_util.dart';
 
 void main() {
   runApp(const MyApp());
@@ -488,7 +485,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                                   child: IsometricChartWidget<String>(
                                     borderColor: Colors.redAccent,
-                                    borderWidth: 2,
+                                    borderWidth: 1,
                                     items:
                                         detailedData[selectedTimePeriod]![selectedItem!]!
                                             .map((data) {
@@ -515,4 +512,11 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
+
+extension ColorUtil on Color {
+  Color withOpacity(double opacity) => withOpacity(opacity);
+
+  Color blend(Color other, [double t = 0.5]) =>
+      Color.lerp(this, other, t) ?? other;
 }

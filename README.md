@@ -1,39 +1,68 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Pseudo 3D Chart
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A Flutter package that provides beautiful pseudo-3D charts with an isometric perspective. This package allows you to create visually appealing data visualizations with a unique depth effect.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+![Example Chart](assets/iso_chart.gif)
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- 🎨 Pseudo-3D visualization with isometric perspective
+- 📊 Support for different time periods (Last Week, This Week, Forecasted)
+- 🎛️ Customizable chart controls
+- 📱 Responsive design that works across all Flutter platforms
+- 🎯 Easy-to-use API
 
-## Getting started
+## Getting Started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Add the package to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  pseudo_3d_chart: ^1.0.0  # Use the latest version
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+Here's a simple example of how to use the Pseudo 3D Chart:
 
 ```dart
-const like = 'sample';
+import 'package:pseudo_3d_chart/pseudo_3d_chart.dart';
+
+class ChartDemo extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Pseudo3DChart(
+        data: [
+          ChartData(
+            label: 'Services',
+            values: [100, 150, 200],
+            color: Colors.blue,
+          ),
+          // Add more data points as needed
+        ],
+        timePeriod: TimePeriod.lastWeek,
+        // Additional configuration options
+      ),
+    );
+  }
+}
 ```
 
-## Additional information
+## Customization
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+The chart can be customized with various options:
+
+- Color schemes
+- Time period selection
+- Chart dimensions
+- Animation duration
+- View perspective
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

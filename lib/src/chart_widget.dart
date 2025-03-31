@@ -109,10 +109,6 @@ class _IsometricChartWidgetState<T> extends State<IsometricChartWidget<T>>
 
       // If the item existed before and value changed
       if (oldItemMap.containsKey(id) && oldItemMap[id]!.value != item.value) {
-        print(
-          'Value changed for $id: ${oldItemMap[id]!.value} -> ${item.value}',
-        );
-
         // Save previous value for animation
         _previousValues[id] = oldItemMap[id]!.value;
 
@@ -133,7 +129,6 @@ class _IsometricChartWidgetState<T> extends State<IsometricChartWidget<T>>
       }
       // New item
       else if (!oldItemMap.containsKey(id)) {
-        print('New item: $id with value ${item.value}');
         _setupAnimationForItem(id, item, from: 0.0);
       }
     }
@@ -141,7 +136,6 @@ class _IsometricChartWidgetState<T> extends State<IsometricChartWidget<T>>
     // Handle removed items
     for (final id in oldItemMap.keys) {
       if (!newItemMap.containsKey(id)) {
-        print('Item removed: $id');
         // Could animate removal if needed
         _itemControllers[id]?.dispose();
         _itemControllers.remove(id);
@@ -267,7 +261,6 @@ class ChartWidget<T> extends StatefulWidget {
 
 class _ChartWidgetState<T> extends State<ChartWidget<T>> {
   final GlobalKey _canvasKey = GlobalKey();
-  ChartItem<T>? _hoveredItem;
 
   @override
   Widget build(BuildContext context) {
