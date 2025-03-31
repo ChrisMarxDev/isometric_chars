@@ -1,10 +1,11 @@
 name: isometric_charts
 description: "Small package to create bar charts with a pseudo 3d effect"
 version: 0.0.1
+repository: https://github.com/ChrisMarxDev/isometric_chars
 homepage:
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.0.0
   flutter: ">=1.17.0"
 
 dependencies:
